@@ -1,0 +1,10 @@
+#cloud-config
+
+hostname: capac
+
+rancher:
+  console: ubuntu
+
+  docker:
+      userland_proxy: false
+      extra_args: [--label, os=rancheros]

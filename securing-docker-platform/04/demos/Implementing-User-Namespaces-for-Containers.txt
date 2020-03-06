@@ -1,0 +1,64 @@
+The steps in this exercise file, assume that the Docker Engine is already
+installed.
+
+Determine container's process is privileged
+===========================================
+
+On the host:
+
+$ docker container run -it --name foo alpine sh
+
+In the container, check the user associated with PID 1 is 'root':
+
+$ ps
+
+Detach from the container using <CTRL-p><CTRL-q> sequence, and then verify that
+the container's process is running as the 'root' user:
+
+$ docker container top foo -eo user,pid,comm
+
+Remove the container:
+
+$ docker container rm -f foo
+
+Configure the daemon for user namespaces
+========================================
+
+Familiarize yourself with the contents of the user subordinate file:
+
+$ cat /etc/subuid
+
+Edit the daemon's configuration file, at /etc/docker/daemon.json (create it, if
+necessary), and add the following line to the body of the JSON object:
+
+"userns-remap": "default"
+
+Restart the Docker daemon:
+
+$ sudo systemctl restart docker.service
+
+Verify that the user 'dockremap' has an entry in the subordinate file:
+
+$ cat /etc/subuid
+
+Determine container's process is non-privileged
+===============================================
+
+On the host:
+
+$ docker container run -it --name foo alpine sh
+
+In the container, check the user associated with PID 1 is 'root':
+
+$ ps
+
+Detach from the container using <CTRL-p><CTRL-q> sequence, and then verify that
+the container's process is running as the user with the UID at the top of the
+subordinate range:
+
+$ docker container top foo -eo user,pid,comm
+
+View new sub-directory in the data root
+=======================================
+
+$ sudo ls -l /var/lib/docker

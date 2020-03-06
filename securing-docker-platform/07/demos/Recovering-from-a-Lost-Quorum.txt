@@ -1,0 +1,98 @@
+This exercise requires the use of Docker Machine to create virtual machines.
+The machines can be created locally, if a hypervisor has been installed, or in
+the cloud. To see which drivers are available, refer to the following:
+
+https://docs.docker.com/machine/drivers
+
+To install Docker Machine on Linux, execute the following commands:
+
+$ URL="https://github.com/docker/machine/releases/download/v0.15.0/docker-machine"
+$ curl -L ${URL}-$(uname -s)-$(uname -m) > /tmp/docker-machine
+$ chmod +x /tmp/docker-machine
+$ sudo cp /tmp/docker-machine /usr/local/bin/docker-machine
+
+The instructions below assume the use of the Virtualbox hypervisor.
+
+Create the Swarm Cluster
+========================
+
+Create an alias for Docker Machine:
+
+$ alias dm='docker-machine'
+
+Create x3 managers and x3 workers:
+
+$ for node in {1..6}; do \
+dm create -d virtualbox node-0${node}; \
+done
+
+Initialize the swarm cluster:
+
+$ docker $(dm config node-01) swarm init --advertise-addr eth1
+
+Retrieve join tokens (only do this in a lab setting):
+
+$ MGR_TOKEN=$(docker $(dm config node-01) swarm join-token -q manager)
+$ WKR_TOKEN=$(docker $(dm config node-01) swarm join-token -q worker)
+
+Join manager nodes:
+
+$ for node in {2..3}; do \
+docker $(dm config node-0$node) swarm join --advertise-addr eth1 --token $MGR_TOKEN $(dm ip node-01):2377; \
+done
+
+Join worker nodes:
+
+$ for node in {4..6}; do \
+docker $(dm config node-0$node) swarm join --advertise-addr eth1 --token $WKR_TOKEN $(dm ip node-01):2377; \
+done
+
+Check the cluster is as expected:
+
+$ docker $(dm config node-01) node ls
+
+Temporary Loss of Quorum
+========================
+
+Stop the node-01 manager:
+
+$ dm stop node-01
+
+List the manager nodes to check the state of the cluster:
+
+$ docker $(dm config node-02) node ls -f role=manager
+
+Stop the node-02 manager:
+
+$ dm stop node-02
+
+List the manager nodes to check the state of the cluster:
+
+$ docker $(dm config node-03) node ls -f role=manager
+
+Restart the two stopped manager nodes:
+
+$ dm start node-0{1..2}
+
+List the manager nodes to check the state of the cluster:
+
+$ docker $(dm config node-03) node ls -f role=manager
+
+Permanent Loss of Quorum
+========================
+
+Remove manager nodes, node-01 and node-02:
+
+$ dm rm -f node-0{1..2}
+
+List the manager nodes to check the state of the cluster:
+
+$ docker $(dm config node-03) node ls -f role=manager
+
+Reinitialize the cluster:
+
+$ docker $(dm config node-03) swarm init --advertise-addr eth1 --force-new-cluster
+
+List the manager nodes to check the state of the cluster:
+
+$ docker $(dm config node-03) node ls -f role=manager

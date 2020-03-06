@@ -1,0 +1,154 @@
+This exercise assumes two separate Docker platforms, one that will serve as a
+registry client, and one that serves as the registry server host.
+
+Throughout, the registry client will be referred to as 'daemon-hostname', and
+corresponds to 'wolff' in the module demos. The registry server will be
+referred to as 'registry-hostname', and corresponds to 'calculus' in the module
+demos.
+
+The contents of the files relevant to each host, should be copied into an
+appropriate user's home directory. For example, if 'skut' is the user
+responsible for issuing Docker CLI commands on the registry server, then the
+'conf' sub-directory in the directory 'registry', should be copied to skut's
+home directory.
+
+Start a Basic Registry and Test Pushing an Image
+================================================
+
+On the registry server host, start a basic registry container:
+
+$ docker container run -d --name registry -p 5000:5000 registry:2
+
+Check that you can interact with the registry, substituting the hostname of the
+registry host:
+
+$ curl <registry-hostname>:5000/v2/_catalog
+
+Pull an image from the Docker Hub registry:
+
+$ docker image pull redis:4
+
+Tag the image to include the name of the target registry, by substituting for
+the hostname of the registry server:
+
+$ docker image tag redis:4 <registry-hostname>:5000/redis:4
+
+Attempt to push the re-tagged image to the registry, substituting for the
+appropriate hostname, and observe the error message:
+
+$ docker image push <registry-hostname>:5000/redis:4
+
+Remove the container:
+
+$ docker container rm -f registry
+
+Configure a Docker Registry for TLS
+===================================
+
+On the registry server host, change into the 'tls' directory, and create the
+registry's TLS artifacts. Be sure to edit the 'registry-csr.json file to provide
+the relevant host details:
+
+$ cd conf/tls
+$ cfssl gencert -initca registry-ca-csr.json | cfssljson -bare registry-ca -
+$ cfssl gencert -ca=registry-ca.pem -ca-key=registry-ca-key.pem \
+-config=ca-config.json -profile=server registry-csr.json | \
+cfssljson -bare registry -
+
+Check the 'certificate' and 'key' keys in the registry's config file, reference
+the registry's TLS artifacts (registry.pem && registry-key.pem):
+
+$ cd ..
+$ vim config.yml
+
+Start the registry container:
+
+$ docker container run -d --name regsitry \
+-v $(pwd)/tls:/certs:ro \
+-v $(pwd)/config.yml:/etc/docker/registry/config.yml:ro \
+-p 443:5000 \
+registry:2
+
+Ensure that the container is running:
+
+$ docker container ls -l
+
+Test the TLS Configuration for the Registry
+===========================================
+
+On the registry server host, make the local Docker daemon aware of the CA
+certificate that signed the registry's certificate. Be sure to specify the
+regsitry server's hostname:
+
+$ sudo mkdir -p /etc/docker/certs.d/<registry-hostname>:443
+$ sudo cp tls/registry-ca.pem \
+/etc/docker/certs.d/<registry-hostname>\:443/registry-ca.crt
+
+Re-tag the image, changing the hostname and port number:
+
+$ docker image tag redis:4 <registry-hostname>:443/redis:4
+
+Push the image to the registry, changing the hostname appropriately:
+
+$ docker image push <registry-hostname>:443/redis:4
+
+Make the Registry Aware of the Client Daemon's Certificate Authority
+====================================================================
+
+If you're using the Docker platform configured for TLS from a previous module,
+'wolff' in the demos, this can be used as the registry client. If not, refer to
+the exercise file Configuring-TLS-for-the-Docker-Client-and-Daemon.txt, to
+configure the daemon for TLS.
+
+On the registry server host, copy the CA certificate from the registry client
+host, to the registry server host. Be sure to substitute the user and hostname:
+
+$ scp <user>@<daemon-hostname>:~/conf/tls/ca.pem tls/daemon-ca.pem
+
+Edit the registry's config file, uncomment the `clientcas` key, and specify the
+name of the CA certificate just copied from the registry client:
+
+$ vim config.yml
+
+Restart the registry:
+
+$ docker container restart registry
+
+Configure the Docker Daemon to be Authenticated by the Registry
+===============================================================
+
+**IMPORTANT** Ensure that the host that will be used as the Docker daemon
+client of the registry ('wolff' in the demos in the course), has a public key
+signed for client and server authentication.
+
+On the registry client host, copy the CA certificate from the registry server
+host, to the registry client host. Be sure to substitute the user and hostname:
+
+$ scp <user>@<registry-hostname>:~/tls/registry-ca.pem tls/registry-ca.pem
+
+Make the daemon aware of the CA certificate that signed the registry's
+certificate. Be sure to specify the registry server hostname:
+
+$ sudo mkdir -p /etc/docker/certs.d/<registry-hostname>:443
+$ sudo cp tls/registry-ca.pem \
+/etc/docker/certs.d/<regsitry-hostname>\:443/registry-ca.crt
+
+Try and Pull the Image From the Registry
+========================================
+
+On the registry client host, attempt to pull the image from the registry,
+substituting the hostname within the image name. Observe the error message:
+
+$ docker image pull <registry-hostname>:443/redis:4
+
+Make the client daemon's TLS artifacts available to the registry, substituting
+the various hostnames:
+
+$ sudo cp /etc/docker/tls/daemon.pem \
+/etc/docker/certs.d/<registry-hostname>\:443/<daemon-hostname>.cert
+$ sudo cp /etc/docker/tls/daemon-key.pem \
+/etc/docker/certs.d/<registry-hostname>\:443/<daemon-hostname>.key
+
+Attempt to pull the image, which should succeed this time:
+
+$ docker image pull <registry-hostname>:443/redis:4

@@ -1,0 +1,5 @@
+{
+    "experimental": true,
+    "insecure-registries": ["35.178.13.174:5000"],
+    "log-level": "debug"
+}

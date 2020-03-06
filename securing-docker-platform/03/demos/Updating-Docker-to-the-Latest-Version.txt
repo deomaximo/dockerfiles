@@ -1,0 +1,44 @@
+The steps in this exercise file, assume that Docker is already installed, and
+that it has been installed from Docker's repositories, rather than the Linux
+distribution's repositories.
+
+For more information: https://docs.docker.com/install/
+
+
+Upgrading and downgrading to a specific version on Ubuntu/Debian
+================================================================
+
+List the versions available:
+
+$ sudo apt update
+$ sudo apt-cache madison docker-ce
+
+Install a specific version, (e.g. 17.11.0):
+
+$ sudo apt install 17.11.0~ce-0~ubuntu
+
+Upgrading on Ubuntu/Debian
+==========================
+
+$ sudo apt update
+$ sudo apt upgrade docker-ce
+
+Upgrading and downgrading to a specific version on CentOS/RHEL/Fedora
+=====================================================================
+
+List the versions available (use 'dnf' for Fedora):
+
+$ yum list --showduplicates docker-ce | sort -r
+
+Upgrade to a specific version, (e.g. 17.11.0):
+
+$ sudo yum install docker-ce-17.11.0.ce
+
+Downgrade to a specific version, (e.g. 17.09.0):
+
+$ sudo yum downgrade docker-ce-17.09.0.ce
+
+Upgrading on CentOS/RHEL/Fedora
+===============================
+
+$ sudo yum update docker-ce

@@ -1,0 +1,77 @@
+The steps in this exercise file, assume that the Docker Engine is already
+installed, and configured for mutual TLS. It also assumes that three users
+have been created to take on the roles of fullAdmin, serviceDesk and netAdmin.
+
+The commands should be executed as the user designated with the fullAdmin role.
+
+Generate Client Certificate for Each User
+=========================================
+
+Place the 'gen-tls-artifacts.sh' script in the directory containing the TLS
+artifacts, created previously. If necessary, edit the array containing the
+users (baxter, bolt and rackham), to the set of users configured in your
+environment.
+
+Generate TLS artifacts for each user:
+
+$ ./gen-tls-artifacts.sh
+
+Check certificate for current user, contains the username in the common name:
+
+$ openssl x509 -in ~/.docker/cert.pem -noout -text | less
+
+Run the OPA Docker Authorization Plugin
+=======================================
+
+Place the 'authz.rego' file in a sub-directory called 'policies', in the user's
+home directory.
+
+Invoke plugin container:
+
+$ docker container run -d \
+--restart=always \
+--name opa-docker-authz \
+--userns=host \
+-v /run/docker/plugins:/run/docker/plugins \
+-v $HOME/policies:/policies \
+openpolicyagent/opa-docker-authz:0.2.2 -policy-file /policies/authz.rego
+
+Check plugin is running as expected:
+
+$ docker container ls -l
+
+Configure the Docker Daemon
+===========================
+
+Amend the daemon's configuration, by adding the following line to the file
+'/etc/docker/daemon.json' (remember to end the line with a comma, if it's not
+the last line in the file):
+
+"authorization-plugins": ["opa-docker-authz"]
+
+Re-load the daemon's configuration with a SIGHUP signal:
+
+$ sudo kill -HUP $(pidof dockerd)
+
+Test User Access to the Docker Daemon
+=====================================
+
+Test user with 'fullAdmin' role can start a container:
+
+$ docker container run -itd --name foo alpine sh
+
+Test that user with 'serviceDesk' role, only has read-only access:
+
+$ sudo -i -u <serviceDesk user> docker container rm -f foo
+$ sudo -i -u <serviceDesk user> docker network create foo
+$ sudo -i -u <serviceDesk user> docker container ls -l
+
+Test that 'netAdmin' user can only create network objects, bar removing them:
+
+$ sudo -i -u <netAdmin user> docker container rm -f foo
+$ sudo -i -u <netAdmin user> docker network create foo
+$ sudo -i -u <netAdmin user> docker network rm foo
+
+Remove the container 'foo':
+
+$ docker container rm -f foo

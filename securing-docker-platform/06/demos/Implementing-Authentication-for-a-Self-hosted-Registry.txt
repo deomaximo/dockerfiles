@@ -1,0 +1,153 @@
+This exercise assumes three separate Docker platforms, one that will serve as a
+registry client, one that serves as the registry server host, and one that
+serves as a docker_auth authorization server.
+
+Throughout, the registry client will be referred to as 'daemon-hostname', and
+corresponds to 'wolff' in the module demos. The registry server will be
+referred to as 'registry-hostname', and corresponds to 'calculus' in the module
+demos. The docker-auth server will be referred to as 'auth-hostname', and
+corresponds to 'auth' in the demos.
+
+The contents of the files relevant to each host, should be copied into an
+appropriate user's home directory. For example, if 'skut' is the user
+responsible for issuing Docker CLI commands on the registry server, then the
+'conf' sub-directory in the directory 'registry', should be copied to skut's
+home directory.
+
+Configure the Registry for Basic Auth
+=====================================
+
+On the registry server host, copy the basic auth configuration:
+
+$ cd conf
+$ cp config.yml.basic config.yml
+
+Check the 'auth' configuration, and place the correct filename for the
+certificate authority of the daemon client, as the value of the 'clientcas'
+key:
+
+$ vim config.yml
+
+If not using the supplied user credentials provided in auth/htpasswd, use the
+registry image to generate user credentials (substituting for username and
+password):
+
+$ docker container run --rm --entrypoint htpasswd \
+registry:2 -Bbn <username> <password> > auth/htpasswd
+
+Start the registry container:
+
+$ docker container run -d --name registry \
+-v $(pwd)/auth:/auth:ro \
+-v $(pwd)/tls:/certs:ro \
+-v $(pwd)/config.yml:/etc/docker/registry/config.yml:ro \
+-p 443:5000 \
+registry:2
+
+Authenticate Using Basic Auth
+=============================
+
+On the registry client host, check that an image is ready to be pushed to the
+registry, substituting the correct hostname:
+
+$ docker image ls <registry-hostname>:443/redis:4
+
+Attempt to push the image to the registry, and notice the error pertaining to
+the lack of basic auth credentials:
+
+$ docker image push <registry-hostname>:443/redis:4
+
+Supply the required credentials for the user configured in the auth/htpasswd
+file. If you're using the credentials supplied in the exercise files, the
+username is 'rackham', and the password is 'cheese':
+
+$ docker login -u <username> <registry-hostname>:443
+
+Attempt to push the image once again, which should succeed this time:
+
+$ docker image push <registry-hostname>:443/redis:4
+
+On the registry server host, remove the registry container:
+
+$ docker container rm -f registry
+
+Configure the Registry for Token-based Authentication
+=====================================================
+
+On the registry server host, copy the token-based auth configuration:
+
+$ cp config.yml.token config.yml
+
+Check the 'auth' configuration, and place the correct filename for the
+certificate authority of the daemon client, as the value of the 'clientcas'
+key. In addition, place the hostname of the auth server in the correct
+component of the value of the 'realm' key:
+
+$ vim config.yml
+
+Start the registry container:
+
+$ docker container run -d --name registry \
+-v $(pwd)/auth:/auth:ro \
+-v $(pwd)/tls:/certs:ro \
+-v $(pwd)/config.yml:/etc/docker/registry/config.yml:ro \
+-p 443:5000 \
+registry:2
+
+Configure the Auth Server
+=========================
+
+The docker_auth server should be configured to communicate using TLS. The
+public key contained within its X.509 certificate, will also be used to sign
+the tokens it generates.
+
+On the docker_auth server, change into the 'tls' directory, and create the
+auth server's TLS artifacts. Be sure to edit the 'auth-csr.json file to provide
+the relevant host detail:
+
+$ cd conf/tls
+$ cfssl gencert -initca auth-ca-csr.json | cfssljson -bare auth-ca -
+$ cfssl gencert \
+-ca=auth-ca.pem -ca-key=auth-ca-key.pem -config=ca-config.json \
+-profile=client-server auth-csr.json | cfssljson -bare auth -
+
+Familiarize yourself with the docker_auth config file, and if necessary, change
+the 'users' key to reflect the desired user's credentials. If you update the
+username, then make sure that the username is also updated in the ACL rule:
+
+$ cd ..
+$ vim config.yml
+
+Start the docker_auth server:
+
+$ docker container run -d --name docker_auth \
+-v $(pwd)/tls:/certs \
+-v $(pwd):/config:ro \
+-p 5001:5001 \
+cesanta/docker_auth:1 /config/config.yml
+
+Authenticate Using Token-based Auth
+===================================
+
+On the registry client host, make the CA certificate that signed the auth
+server's certificate, available to the client daemon for TLS:
+
+$ scp <username>@<auth-hostname>:~/conf/tls/auth-ca.pem tls/auth-ca.pem
+$ sudo cp tls/auth-ca.pem /etc/docker/certs.d/calculus.lan\:443/auth-ca.crt
+
+Attempt to push the redis image to the registry, which should succeed:
+
+$ docker image push <registry-hostname>:443/redis:4
+
+Pull another example image:
+
+$ docker image pull nginx:1
+
+Tag the image ready for pushing to the registry:
+
+$ docker image tag <registry-hostname>:443/nginx:1
+
+Attempt to push the image to the registry, which should fail, due to lack of
+authorization:
+
+$ docker image push <registry-hostname>:443/nginx:1

@@ -1,0 +1,25 @@
+{
+    "signing": {
+        "default": {
+            "expiry": "1440h"
+        },
+        "profiles": {
+            "daemon": {
+                "expiry": "1440h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth"
+                ]
+            },
+            "client": {
+                "expiry": "1440h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "client auth"
+                ]
+            }
+        }
+    }
+}

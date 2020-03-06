@@ -1,0 +1,16 @@
+{
+    "CN": "Auth Server CA",
+    "key": {
+        "algo": "rsa",
+        "size": 4096
+    },
+    "names": [
+        {
+            "C": "GB",
+            "ST": "Berkshire",
+            "L": "Windsor",
+            "O": "Acme Limited",
+            "OU": "Engineering"
+        }
+    ]
+}

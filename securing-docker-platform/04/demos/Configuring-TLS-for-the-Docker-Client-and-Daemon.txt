@@ -1,0 +1,93 @@
+The steps in this exercise file, assume that the Docker Engine is already
+installed on a <HOST> system, that a remote client system has the Docker client
+installed, and that the client can access the host system using SSH/SCP, as the
+<USER>.
+
+Before commencing, download the exercise files to the <HOST> system, and ensure
+that ca-config.json, ca-csr.json, client-csr.json, and daemon-csr.json are
+located in the <USER>'s current working directory.
+
+Obtain the CFSSL utilities
+==========================
+
+Instructions for obtaining, and installing, the CFSSL utilities, can be found
+at https://github.com/cloudflare/cfssl. Optionally, it's possible to make use
+of a Docker image, instead, and the following details how to set up CFSSL using
+aliases.
+
+$ docker image pull cfssl/cfssl
+$ alias cfssl='docker container run -i --rm -u $UID:$UID -v $PWD:/pki -w "/pki" cfssl/cfssl "$@"'
+$ alias cfssljson='docker container run -i --rm -u $UID:$UID -v $PWD:/pki -w "/pki" --entrypoint cfssljson cfssl/cfssl "$@"'
+$ cfssl version
+
+Create Certificate Authority
+============================
+
+$ cfssl gencert -initca ca-csr.json | cfssljson -bare ca -
+
+Create daemon key and certificate
+=================================
+
+Ensure the daemon-csr.json file contains the appropriate identities for your
+host, and then issue the command:
+
+$ cfssl gencert \
+-ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json \
+-profile=daemon \
+daemon-csr.json | cfssljson -bare daemon -
+
+Configure the daemon for TLS
+============================
+
+Copy artefacts to /etc/docker/tls:
+
+$ chmod -v 0400 {ca,daemon}*.pem
+$ sudo mkdir /etc/docker/tls
+$ sudo cp {daemon*,ca}.pem /etc/docker/tls
+$ rm -f daemon*.pem
+
+Add TCP socket to daemon's configuration, by appending 'tcp://0.0.0.0:2376' to
+the service definition in a Systemd override, using:
+
+$ sudo -E systemctl edit docker.service
+
+Edit the daemon's configuration file, at /etc/docker/daemon.json (create it, if
+necessary), and add the following lines to the body of the JSON object:
+
+"tlsverify": true,
+"tlscert": "/etc/docker/tls/daemon.pem",
+"tlskey": "/etc/docker/tls/daemon-key.pem",
+"tlscacert": "/etc/docker/tls/ca.pem"
+
+Restart the Docker daemon:
+
+$ sudo systemctl restart docker.service
+
+Configure the client for TLS
+============================
+
+On the system hosting the daemon:
+
+$ cfssl gencert \
+-ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json \
+-profile=client \
+client-csr.json | cfssljson -bare client -
+
+Configure the client for TLS
+============================
+
+On a remote client system, with the Docker client installed:
+
+$ scp <USER>@<HOST>:~/tls/{client*,ca}.pem ~/.docker
+$ mv ~/.docker/client.pem ~/.docker/cert.pem
+$ mv ~/.docker/client-key.pem ~/.docker/key.pem
+$ export DOCKER_HOST=tcp://<HOST>:2376 DOCKER_TLS_VERIFY=1
+
+Test mutual TLS communication
+=============================
+
+Run a Docker client command on the remote client system, and check it returns
+the appropriate response:
+
+$ docker info --format 'Hostname: {{println .Name}}OS: {{.OperatingSystem}}'
+

@@ -1,0 +1,63 @@
+The steps in this exercise are marginally different for alternative variants of
+Linux. Take care to execute the correct commands for the system that you are
+using.
+
+1. Check if audit framework is installed
+========================================
+
+$ pidof auditd
+$ command -v auditd
+
+2. Install audit framework
+==========================
+
+If not already installed, use the following to install the audit framework:
+
+Fedora/RHEL/CentOS -
+
+$ sudo yum install audit audit-libs
+
+Ubuntu/Debian -
+
+$ sudo apt update
+$ sudo apt install auditd
+
+3. Run an audit report
+======================
+
+$ sudo aureport
+
+4. Create a rule for the Docker daemon
+======================================
+
+$ sudo auditctl -w /usr/bin/dockerd -k docker
+$ sudo auditctl -l
+
+5. Test the rule to make sure it works
+======================================
+
+$ dockerd -v
+$ sudo aureport -k
+$ sudo ausearch --event <EVENT_ID>
+$ sudo ausearch --event <EVENT_ID> | sudo aureport -f -i
+
+6. Add rules for the remaining artifacts
+========================================
+
+$ files=("/var/lib/docker" "/etc/docker" "/lib/systemd/system/docker.service" "/lib/systemd/system/docker.socket" "/etc/default/docker" "/etc/docker/daemon.json" "/usr/bin/docker-containerd" "/usr/bin/docker-runc")
+$ echo "${files[*]}"
+$ for i in "${files[@]}"; do sudo auditctl -w $i -k docker; done
+$ sudo auditctl -l
+
+7. Make the rules permanent
+===========================
+
+$ sudo systemctl --no-pager show -p ExecStartPost auditd.service
+
+If the command specified in the ExecStartPost option is 'augenrules', then:
+
+$ sudo sh -c "auditctl -l >> /etc/audit/rules.d/audit.rules
+
+Otherwise, if the command specified in the ExecStartPost option is 'auditctl', then:
+
+$ sudo sh -c "auditctl -l >> /etc/audit/audit.rules

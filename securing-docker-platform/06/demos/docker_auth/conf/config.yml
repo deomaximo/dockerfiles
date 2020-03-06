@@ -1,0 +1,17 @@
+server:
+  addr: ":5001"
+  certificate: "/certs/auth.pem"
+  key: "/certs/auth-key.pem"
+
+token:
+  issuer: "Acme Auth Server"
+  expiration: 900
+
+users:
+  "rackham":
+    password: "$2y$05$l2ATySALRb/PVVh7KWoxrO9lWQtUQS9Em1EjzfSZxgjJP9U6cxpIy"
+
+acl:
+  - match: {account: "rackham", name: "redis"}
+    actions: ["*"]
+    comment: "Allow the user rackham to perform operations in the redis repo"

@@ -1,0 +1,17 @@
+{                                                                                                      
+    "CN": "<hostname>.lan",
+    "hosts": ["<hostname>.lan"],
+    "key": {
+        "algo": "rsa",
+        "size": 4096
+    },
+    "names": [
+        {
+            "C": "GB",
+            "ST": "Berkshire",
+            "L": "Windsor",
+            "O": "Acme Limited",
+            "OU": "Engineering"
+        }
+    ]
+}

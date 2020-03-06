@@ -1,0 +1,18 @@
+First, make sure that you have Docker installed on your host platform.
+See https://docs.docker.com/install/ for details.
+
+1. Retrieving the Docker Bench for Security
+===========================================
+
+$ git clone https://github.com/docker/docker-bench-security.git
+
+2. Getting help for the Docker Bench for Security
+=================================================
+
+$ cd docker-bench-security
+$ ./docker-bench-security.sh -h
+
+3. Running the Docker Bench for Security
+========================================
+
+$ sudo ./docker-bench-security.sh

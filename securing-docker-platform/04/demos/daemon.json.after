@@ -1,0 +1,14 @@
+{
+    "default-ulimits": { "nofile": { "Name": "nofile", "Soft": 1024, "Hard": 2048 }},
+    "icc": false,
+    "live-restore": true,
+    "log-driver": "syslog",
+    "log-opts": { "syslog-address": "udp://localhost:514"},
+    "no-new-privileges": true,
+    "tlscacert": "/etc/docker/tls/ca.pem",
+    "tlscert": "/etc/docker/tls/daemon.pem",
+    "tlskey": "/etc/docker/tls/daemon-key.pem",
+    "tlsverify": true,
+    "userns-remap": "default",
+    "userland-proxy": false
+}

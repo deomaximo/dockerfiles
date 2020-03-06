@@ -1,0 +1,27 @@
+version: 0.1
+log:
+  fields:
+    service: registry
+storage:
+  cache:
+    blobdescriptor: inmemory
+  filesystem:
+    rootdirectory: /var/lib/registry
+auth:
+  htpasswd:
+    realm: <name of resgistry server>
+    path: /auth/htpasswd
+http:
+  addr: 0.0.0.0:5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+  tls:
+    certificate: /certs/registry.pem
+    key: /certs/registry-key.pem
+    clientcas:
+      - /certs/<ca-for-daemon>.pem
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3

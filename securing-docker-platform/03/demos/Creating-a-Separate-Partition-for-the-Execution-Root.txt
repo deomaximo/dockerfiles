@@ -1,0 +1,80 @@
+The method for creating a partition for the execution root, can be achieved in
+a number of ways, and will depend on the physical resources available to you.
+The method below, assumes a disk is available (/deb/sdb), which will be used
+in its entirety. The disk is used 'as is', without the use of logical volumes.
+
+WARNING: Making changes to partition tables, could cause the loss of data, or
+render your host unbootable. Ensure you have a backup before you proceed, and
+that you are thoroughly familiar with the process, the commands involved, and
+the consequences of executing the commands.
+
+1. List the block device to ensure it's available
+=================================================
+
+$ lsblk | grep sdb
+
+2. Check the current partition table
+====================================
+
+$ sudo fdisk -l /dev/sdb
+
+3. Create a new partition
+=========================
+
+$ sudo fdisk /dev/sdb
+Command (m for help): n
+Select (default p): <RETURN>
+Partition number (1-4, default 1): <RETURN>
+First sector (2048-20971519, default 2048): <RETURN>
+Last sector, +sectors or +size{K,M,G,T,P} (2048-20971519, default 20971519): <RETURN>
+Command (m for help): w
+
+4. Re-check to view new partition table
+=======================================
+
+$ sudo fdisk -l /dev/sdb
+
+5. Create an ext4 filesystem on the new partition
+=================================================
+
+$ sudo mkfs.ext4 /dev/sdb1
+
+6. Temporarily mount new partition
+==================================
+
+$ sudo mkdir /mnt/docker
+$ sudo mount -o defaults /dev/sdb1 /mnt/docker
+
+7. Stop the Docker daemon
+=========================
+
+$ sudo systemctl stop docker.service
+
+8. Copy contents of execution root to new partition
+===================================================
+
+$ sudo rsync -aqxP /var/lib/docker/ /mnt/docker/
+$ sudo diff -r /var/lib/docker /mnt/docker
+
+9. Remove old execution root
+============================
+
+$ sudo rm -rf /var/lib/docker
+
+10. Make new partition the execution root
+=========================================
+
+$ sudo umount /mnt/docker
+$ sudo mkdir -m 711 /var/lib/docker
+$ sudo mount -o defaults /dev/sdb1 /var/lib/docker
+
+11. Test the Docker daemon uses the new execution root
+======================================================
+
+$ sudo systemctl start docker.service
+$ sudo docker image ls
+
+12. Make the mount permanent
+============================
+
+$ sudo sh -c 'printf "UUID=%s\t/var/lib/docker\text4\tdefaults\t0 2\n" $(blkid -o value -s UUID /dev/sdb1) >> /etc/fstab'

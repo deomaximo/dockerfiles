@@ -1,0 +1,95 @@
+To perform this exercise, it will be necessary to have an Amazon Web Services
+account, and the relevant permissions to configure resources. The following
+pre-requisites need to be met to perform the exercise successfully:
+
+        # https://linux.die.net/man/1/drill
+     i) The drill utility must be installed in your local environment
+
+        # https://docs.aws.amazon.com/cli/latest/userguide/installing.html
+    ii) The AWS CLI must be installed in your local environment
+
+        # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html
+   iii) A valid key pair name must have been previously imported
+
+        # https://docs.docker.com/install/
+    iV) A Docker client must be installed in your local environment
+
+1. Retrieve the public IP address of your local environment
+===========================================================
+
+$ export PUBLIC_IP=$(drill myip.opendns.com @resolver1.opendns.com | grep '^myip' | cut -f 5)
+
+2. Retrieve the ID of the default AWS security group
+====================================================
+
+$ export AWS_SGID=$(aws ec2 describe-security-groups --filter "Name=group-name,Values=default" | jq -sr '.[].SecurityGroups[].GroupId')
+
+3. Configure ingress on the AWS security group
+==============================================
+
+$ for i in {22,2376,3000}; do \
+aws ec2 authorize-security-group-ingress --group-id $AWS_SGID --protocol tcp --port $i --cidr ${PUBLIC_IP}/32; \
+done
+
+4. Create the AWS instance
+==========================
+
+$ aws ec2 run-instances --image-id ami-7e41591a --count 1 --instance-type t2.micro \
+--key-name <KEY_PAIR_NAME> \
+--tag-specifications 'ResourceType=instance,Tags=[{Key=os,Value=rancheros}]' \
+--user-data "$(cat cloud-config.yml)"
+
+5. Retrieve the public IP address of the instance
+=================================================
+
+$ export AWS_PUBLIC_IP=$(aws ec2 describe-instances --filters Name=tag:os,Values=rancheros' 'Name=instance-state-name,Values=running' --query 'Reservations[].Instances[].PublicIpAddress' --output text | tr -d '\r')
+
+6. Log in to the AWS instance
+=============================
+
+$ ssh rancher@$AWS_PUBLIC_IP
+
+7. Observe the configuration of the RancherOS host
+==================================================
+
+$ sudo ps -C dockerd --format args -ww
+$ ps -p 1
+$ sudo system-docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.Names}}'
+
+8. Configure secure communication with TLS
+==========================================
+
+$ ros --help
+$ sudo ros tls gen --help
+$ export PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+$ export PUBLIC_HOSTNAME=$(curl -s http://169.254.169.254/latest/meta-data/public-hostname)
+$ sudo ros tls gen -s -H localhost -H $PUBLIC_IP -H $PUBLIC_HOSTNAME
+$ sudo ros config set rancher.docker.tls true
+$ sudo system-docker restart docker
+$ sudo ps -C dockerd --format args -ww
+$ sudo ros tls gen
+
+9. Test access to Docker daemon using TCP socket
+================================================
+
+$ docker --tlsverify version
+$ exit
+
+10. Configure Docker client in local environment
+================================================
+
+$ scp rancher@$AWS_PUBLIC_IP:~/.docker/*.pem ~/.docker/
+$ export DOCKER_HOST=tcp://${AWS_PUBLIC_IP}:2376 DOCKER_TLS_VERIFY=1
+$ docker info --format 'Hostname: {{println .Name}}OS: {{println .OperatingSystem}}Labels: {{.Labels}}'
+
+11. Use local Docker client to invoke a container on RancherOS Docker host
+==========================================================================
+
+$ docker container run -itd --rm -p 3000:80 \
+-v /etc/hostname://etc/docker-hostname:ro --name nginxhello \
+nbrown/nginxhello
+
+12. Use a web browser to consume the service
+============================================
+
+Navigate to <AWS_PUBLIC_IP>:3000
