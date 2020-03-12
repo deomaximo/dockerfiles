@@ -42,7 +42,7 @@ $ aws ec2 run-instances --image-id ami-7e41591a --count 1 --instance-type t2.mic
 5. Retrieve the public IP address of the instance
 =================================================
 
-$ export AWS_PUBLIC_IP=$(aws ec2 describe-instances --filters Name=tag:os,Values=rancheros' 'Name=instance-state-name,Values=running' --query 'Reservations[].Instances[].PublicIpAddress' --output text | tr -d '\r')
+$ export AWS_PUBLIC_IP=$(aws ec2 describe-instances --filters 'Name=tag:os,Values=rancheros' 'Name=instance-state-name,Values=running' --query 'Reservations[].Instances[].PublicIpAddress' --output text | tr -d '\r')
 
 6. Log in to the AWS instance
 =============================
