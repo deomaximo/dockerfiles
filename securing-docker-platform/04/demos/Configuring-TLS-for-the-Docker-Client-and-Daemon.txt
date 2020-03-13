@@ -36,6 +36,8 @@ Create daemon key and certificate
 Ensure the daemon-csr.json file contains the appropriate identities for your
 host, and then issue the command:
 
+(Install nano:$sudo apt-get install nano)
+
 $ cfssl gencert \
 -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json \
 -profile=daemon \
