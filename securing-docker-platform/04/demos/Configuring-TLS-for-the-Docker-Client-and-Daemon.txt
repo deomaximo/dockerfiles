@@ -56,6 +56,15 @@ $ rm -f daemon*.pem
 Add TCP socket to daemon's configuration, by appending 'tcp://0.0.0.0:2376' to
 the service definition in a Systemd override, using:
 
+$ sudo mkdir /etc/systemd/system/docker.service.d/
+$ sudo touch touch /etc/systemd/system/docker.service.d/docker.conf
+
+Option:
+Edit the file:
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd -H tcp://0.0.0.0:2376
+
 $ sudo -E systemctl edit docker.service
 
 Error:
