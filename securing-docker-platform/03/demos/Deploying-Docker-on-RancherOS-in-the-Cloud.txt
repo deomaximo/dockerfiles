@@ -34,7 +34,7 @@ done
 4. Create the AWS instance
 ==========================
 
-$ aws ec2 run-instances --image-id ami-7e41591a --count 1 --instance-type t2.micro \
+$ aws ec2 run-instances --image-id ami-04a8b7119cc82a3b2 --count 1 --instance-type t2.micro \
 --key-name <KEY_PAIR_NAME> \
 --tag-specifications 'ResourceType=instance,Tags=[{Key=os,Value=rancheros}]' \
 --user-data "$(cat cloud-config.yml)"
