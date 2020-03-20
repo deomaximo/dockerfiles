@@ -41,7 +41,7 @@ daemon-csr.json | cfssljson -bare daemon -
 Configure the daemon for TLS
 ============================
 
-Copy artefacts to /etc/docker/tls:
+Copy artifacts to /etc/docker/tls:
 
 $ chmod -v 0400 {ca,daemon}*.pem
 $ sudo mkdir /etc/docker/tls
@@ -52,7 +52,7 @@ Add TCP socket to daemon's configuration, by appending 'tcp://0.0.0.0:2376' to
 the service definition in a Systemd override, using:
 
 $ sudo mkdir /etc/systemd/system/docker.service.d/
-$ sudo touch touch /etc/systemd/system/docker.service.d/docker.conf
+$ sudo touch /etc/systemd/system/docker.service.d/docker.conf
 
 Option:
 Edit the file:
