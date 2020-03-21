@@ -1,11 +1,12 @@
 {
-    "CN": "<hostname>.lan",
+    "CN": "<hostname internal lan>",
     "hosts": [
         "<hostname>",
-        "<hostname>.lan",
+        "<hostname internal lan",
         "localhost",
         "127.0.0.1",
-        "IP address of host"
+        "public dns",
+        "public ip"
     ],
     "key": {
         "algo": "rsa",
@@ -13,11 +14,11 @@
     },
     "names": [
         {
-            "C": "GB",
-            "ST": "Berkshire",
-            "L": "Windsor",
+            "C": "US",
+            "ST": "Texas",
+            "L": "Austin",
             "O": "Acme Limited",
-            "OU": "Engineering"
+            "OU": "Service"
         }
     ]
 }
