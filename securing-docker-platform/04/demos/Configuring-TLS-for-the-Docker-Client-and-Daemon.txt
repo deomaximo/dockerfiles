@@ -62,9 +62,6 @@ ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2376
 
 $ sudo -E systemctl edit docker.service
 
-Error:
-sudo: systemctl: command not found
-
 Edit the daemon's configuration file, at /etc/docker/daemon.json (create it, if
 necessary), and add the following lines to the body of the JSON object:
 
