@@ -1,5 +1,9 @@
 {
+    "insecure-registries": ["myregistrydomain.com:5000"],
+    "log-level": "debug",
     "experimental": true,
-    "insecure-registries": ["35.178.13.174:5000"],
-    "log-level": "debug"
+    "tlsverify": true,
+    "tlscert": "/etc/docker/tls/daemon.pem",
+    "tlskey": "/etc/docker/tls/daemon-key.pem",
+    "tlscacert": "/etc/docker/tls/ca.pem"    
 }
