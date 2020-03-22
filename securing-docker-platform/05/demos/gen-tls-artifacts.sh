@@ -4,7 +4,7 @@
 users=(baxter bolt rackham)
 
 
-export DOCKER_HOST=tcp://wolff:2376
+export DOCKER_HOST=tcp://DEX000:2376
 export DOCKER_TLS_VERIFY=1
 
 
